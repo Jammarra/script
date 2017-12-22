@@ -17,7 +17,7 @@ for i in range (len(A)):
 
 
 for i in range (0,len(B),3):
-	user_access, error =  Popen("radosgw-admin user info --uid='%s$%s' | grep -v 'access_key' | grep %s" % (B[i], B[i], B[i+1]), shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE).communicate()
+	user_access, error =  Popen("radosgw-admin user info --uid='%s$%s' | grep %s" % (B[i], B[i], B[i+1]), shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE).communicate()
 	if not error:
 		if not user_access:
 			Popen("radosgw-admin key create --uid='%s$%s' --key-type=s3 --access-key %s --secret-key %s" % (B[i], B[i], B[i+1], B[i+2]), shell=True, stdin=PIPE)
