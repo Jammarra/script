@@ -1,0 +1,85 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+
+import os
+import cgi
+import datetime
+import subprocess
+import threading
+from operator import itemgetter
+from subprocess import Popen, PIPE
+import warnings
+import MySQLdb
+ids = raw_input("id srv?")
+ipipmi=0
+
+#Создаем trunk
+def trunk(portid,vlan):
+  r,e=Popen(''' /usr/local/mgr5/sbin/mgrctl -m dcimgr -o text  switch.port.edit su=admin elid=%s sok=ok trunkmembers=%s,2 istrunk=on ''' % (portid,vlan), shell=True, stdout=PIPE, stderr=PIPE).communicate() 
+
+def delipmi(ids):
+  idipmi=0
+  idipmi=Popen(''' /usr/local/mgr5/sbin/mgrctl -m dcimgr -o text server.connection elid=%s su=admin | grep IPMI | awk '{print $1}' |awk -F "=" '{print $2}' ''' % (ids), shell=True, stdout=PIPE, stderr=PIPE).communicate()
+  if idipmi!=0:
+     idipmi=idipmi[0].strip()
+     r,w=Popen(''' /usr/local/mgr5/sbin/mgrctl -m dcimgr -o text server.connection.delete elid=%s plid=%s su=admin sok=ok ''' % (idipmi,ids), shell=True, stdout=PIPE, stderr=PIPE).communicate()
+     print r
+  print idipmi
+
+#Создаем ipmi
+def ipmi(ids):
+  print ids, '------ids'
+  r,e=Popen(''' /usr/local/mgr5/sbin/mgrctl -m dcimgr -o text server.connection.autocreateipmi iptype=ipmi_parent_vlan2 passwd=pass plid=%s sok=ok User=ADMIN ''' % (ids), shell=True, stdout=PIPE, stderr=PIPE).communicate()
+  print r, '--------------1'
+  idipmi=Popen(''' /usr/local/mgr5/sbin/mgrctl -m dcimgr -o text server.connection elid=%s su=admin | grep IPMI | awk '{print $1}' |awk -F "=" '{print $2}' ''' % (ids), shell=True, stdout=PIPE, stderr=PIPE).communicate()
+  idipmi=idipmi[0].strip() 
+  print idipmi, '--------------1'
+  r,e=Popen(''' /usr/local/mgr5/sbin/mgrctl -m dcimgr -o text  server.connection.edit device=IPMI devtype=IPMI su=admin plid=%s elid=%s ipmiuser=ADMIN ipmipass=pass sok=ok ''' % (ids,idipmi), shell=True, stdout=PIPE, stderr=PIPE).communicate()
+  global ipipmi
+  ipipmi=Popen(''' /usr/local/mgr5/sbin/mgrctl -m dcimgr server.connection.edit plid=%s elid=%s su=admin | grep ipmiip |awk -F "=" '{print $2}' ''' % (ids,idipmi), shell=True, stdout=PIPE, stderr=PIPE).communicate()
+  print r  
+
+#Подрубаемся к mysql
+class DB:
+  def __init__(self, host='localhost', user='dcimgr', passwd='pass', db='dcimgr'):
+    try:
+      self.con = MySQLdb.connect(host, user, passwd, db)
+      self.con.set_character_set('utf8')
+      cur = self.con.cursor()
+      cur.execute('SET NAMES utf8;')
+      cur.execute('SET CHARACTER SET utf8;')
+      cur.execute('SET character_set_connection=utf8;')
+      cur.close()
+    except MySQLdb.Error, e:
+      sys.exit(0)
+
+#Дергаем нужные данные из БД
+  def getport(self,ids):
+    cur = self.con.cursor()
+    cur.execute(u'''SELECT sp.vlan, s.ip, sp.trunk_members,ep.id FROM servers s INNER JOIN connections c ON c.server=s.id INNER JOIN eq_ports ep ON ep.id=c.port INNER JOIN switch_ports sp ON sp.port=ep.id WHERE s.id= %s AND sp.vlan=23 OR s.id= %s AND sp.vlan=8 OR sp.vlan=127''',(ids,ids))
+    res = cur.fetchone()
+    cur.close()
+    return res
+
+#Закидываем данные в переменную.
+db = DB()
+amysql = db.getport(ids)
+print  type(amysql[1])
+if amysql[2]!=None:
+    print ids,amysql 
+    delipmi(ids)
+    ipmi(int(ids))
+    ipipmi=ipipmi[0].strip()
+    print ipipmi
+    print ''' ssh -i /root/jammarra/sshk %s "ipmitool lan set 1 ipsrc static && ipmitool lan set 1 ipaddr %s && ipmitool lan set 1 netmask 255.0.0.0 && ipmitool lan set 1 defgw ipaddr 10.11.0.1 && ipmitool lan set 1 vlan id 2 && ipmitool lan set 1 arp respond on && ipmitool user disable 1 && ipmitool user disable 2 && ipmitool user set name 3 ADMIN && ipmitool user set password 1 pass && ipmitool user set password 2 pass && ipmitool user set password 3 pass && ipmitool channel setaccess 1 3 ipmi=on privilege=4 && ipmitool lan set 3 access on && ipmitool user enable 3" ''' % (amysql[1],ipipmi)
+    r,e=Popen(''' ssh -i /root/jammarra/sshk %s "ipmitool lan set 1 ipsrc static && ipmitool lan set 1 ipaddr %s && ipmitool lan set 1 netmask 255.0.0.0 && ipmitool lan set 1 defgw ipaddr 10.11.0.1 && ipmitool lan set 1 vlan id 2 && ipmitool lan set 1 arp respond on && ipmitool user disable 1 && ipmitool user disable 2 && ipmitool user set name 3 ADMIN && ipmitool user set password 1 pass && ipmitool user set password 2 pass && ipmitool user set password 3 pass && ipmitool channel setaccess 1 3 ipmi=on privilege=4 && ipmitool lan set 3 access on && ipmitool user enable 3" ''' % (amysql[1],ipipmi), shell=True, stdout=PIPE, stderr=PIPE).communicate()
+
+print ids,amysql
+trunk(amysql[3],amysql[0])
+ipmi(ids)
+ipipmi=ipipmi[0].strip()
+print ipipmi
+r,e=Popen(''' ssh -i /root/jammarra/sshk %s "ipmitool lan set 1 ipsrc static && ipmitool lan set 1 ipaddr %s && ipmitool lan set 1 netmask 255.0.0.0 && ipmitool lan set 1 defgw ipaddr 10.11.0.1 && ipmitool lan set 1 vlan id 2 && ipmitool lan set 1 arp respond on && ipmitool user disable 1 && ipmitool user set password 1 pass && ipmitool user set password 2 pass && ipmitool user enable 2" ''' % (amysql[1],ipipmi), shell=True, stdout=PIPE, stderr=PIPE).communicate()
+r,e=Popen(''' ssh -i /root/jammarra/sshk %s "ipmitool lan set 1 ipsrc static && ipmitool lan set 1 ipaddr %s && ipmitool lan set 1 netmask 255.255.0.0 && ipmitool lan set 1 defgw ipaddr 10.11.0.1 && ipmitool lan set 1 vlan id 2 && ipmitool lan set 1 arp respond on && ipmitool user disable 1 && ipmitool user disable 2 && ipmitool user set name 3 ADMIN && ipmitool user set password 1 pass && ipmitool user set password 2 pass && ipmitool user set password 3 pass && ipmitool channel setaccess 1 3 ipmi=on privilege=4 && ipmitool lan set 3 access on && ipmitool user enable 3" ''' % (amysql[1],ipipmi), shell=True, stdout=PIPE, stderr=PIPE).communicate()
+print r
