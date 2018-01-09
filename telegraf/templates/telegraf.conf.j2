@@ -1,0 +1,502 @@
+# Telegraf Configuration
+#
+# Telegraf is entirely plugin driven. All metrics are gathered from the
+# declared inputs, and sent to the declared outputs.
+#
+# Plugins must be declared in here to be active.
+# To deactivate a plugin, comment out the name and any variables.
+#
+# Use 'telegraf -config telegraf.conf -test' to see what metrics a config
+# file would generate.
+#
+# Environment variables can be used anywhere in this config file, simply prepend
+# them with $. For strings the variable must be within quotes (ie, "$STR_VAR"),
+# for numbers and booleans they should be plain (ie, $INT_VAR, $BOOL_VAR)
+
+
+# Global tags can be specified here in key="value" format.
+[global_tags]
+  # dc = "us-east-1" # will tag all metrics with dc=us-east-1
+  # rack = "1a"
+  ## Environment variables can be used as tags, and throughout the config file
+  # user = "$USER"
+
+
+# Configuration for telegraf agent
+[agent]
+  ## Default data collection interval for all inputs
+  interval = "10s"
+  ## Rounds collection interval to 'interval'
+  ## ie, if interval="10s" then always collect on :00, :10, :20, etc.
+  round_interval = true
+
+  ## Telegraf will send metrics to outputs in batches of at most
+  ## metric_batch_size metrics.
+  ## This controls the size of writes that Telegraf sends to output plugins.
+  metric_batch_size = 1000
+
+  ## For failed writes, telegraf will cache metric_buffer_limit metrics for each
+  ## output, and will flush this buffer on a successful write. Oldest metrics
+  ## are dropped first when this buffer fills.
+  ## This buffer only fills when writes fail to output plugin(s).
+  metric_buffer_limit = 10000
+
+  ## Collection jitter is used to jitter the collection by a random amount.
+  ## Each plugin will sleep for a random time within jitter before collecting.
+  ## This can be used to avoid many plugins querying things like sysfs at the
+  ## same time, which can have a measurable effect on the system.
+  collection_jitter = "0s"
+
+  ## Default flushing interval for all outputs. You shouldn't set this below
+  ## interval. Maximum flush_interval will be flush_interval + flush_jitter
+  flush_interval = "10s"
+  ## Jitter the flush interval by a random amount. This is primarily to avoid
+  ## large write spikes for users running a large number of telegraf instances.
+  ## ie, a jitter of 5s and interval 10s means flushes will happen every 10-15s
+  flush_jitter = "0s"
+
+  ## By default or when set to "0s", precision will be set to the same
+  ## timestamp order as the collection interval, with the maximum being 1s.
+  ##   ie, when interval = "10s", precision will be "1s"
+  ##       when interval = "250ms", precision will be "1ms"
+  ## Precision will NOT be used for service inputs. It is up to each individual
+  ## service input to set the timestamp at the appropriate precision.
+  ## Valid time units are "ns", "us" (or "µs"), "ms", "s".
+  precision = ""
+
+  ## Logging configuration:
+  ## Run telegraf with debug log messages.
+  debug = false
+  ## Run telegraf in quiet mode (error log messages only).
+  quiet = false
+  ## Specify the log file name. The empty string means to log to stderr.
+  logfile = ""
+
+  ## Override default hostname, if empty use os.Hostname()
+  hostname = ""
+  ## If set to true, do no set the "host" tag in the telegraf agent.
+  omit_hostname = false
+
+
+###############################################################################
+#                            OUTPUT PLUGINS                                   #
+###############################################################################
+
+# Configuration for influxdb server to send metrics to
+[[outputs.influxdb]]
+  ## The HTTP or UDP URL for your InfluxDB instance.  Each item should be
+  ## of the form:
+  ##   scheme "://" host [ ":" port]
+  ##
+  ## Multiple urls can be specified as part of the same cluster,
+  ## this means that only ONE of the urls will be written to each interval.
+  # urls = ["udp://localhost:8089"] # UDP endpoint example
+  urls = ["https://mon.ru:8086"] # required
+  ## The target database for metrics (telegraf will create it if not exists).
+  database = "telegraf" # required
+
+  ## Name of existing retention policy to write to.  Empty string writes to
+  ## the default retention policy.
+  retention_policy = ""
+  ## Write consistency (clusters only), can be: "any", "one", "quorum", "all"
+  write_consistency = "any"
+
+  ## Write timeout (for the InfluxDB client), formatted as a string.
+  ## If not provided, will default to 5s. 0s means no timeout (not recommended).
+  timeout = "5s"
+  username = "telegraf"
+  password = "***"
+  # username = "telegraf"
+  # password = "metricsmetricsmetricsmetrics"
+  ## Set the user agent for HTTP POSTs (can be useful for log differentiation)
+  # user_agent = "telegraf"
+  ## Set UDP payload size, defaults to InfluxDB UDP Client default (512 bytes)
+  # udp_payload = 512
+
+  ## Optional SSL Config
+  #ssl_ca = "/etc/ssl/certs/rootCA.crt"
+  # ssl_cert = "/etc/telegraf/cert.pem"
+  # ssl_key = "/etc/telegraf/key.pem"
+  ## Use SSL but skip chain & host verification
+  # insecure_skip_verify = false
+
+
+
+###############################################################################
+#                            PROCESSOR PLUGINS                                #
+###############################################################################
+
+# # Print all metrics that pass through this filter.
+# [[processors.printer]]
+
+
+
+###############################################################################
+#                            AGGREGATOR PLUGINS                               #
+###############################################################################
+
+# # Keep the aggregate min/max of each metric passing through.
+# [[aggregators.minmax]]
+#   ## General Aggregator Arguments:
+#   ## The period on which to flush & clear the aggregator.
+#   period = "30s"
+#   ## If true, the original metric will be dropped by the
+#   ## aggregator and will not get sent to the output plugins.
+#   drop_original = false
+
+
+
+###############################################################################
+#                            INPUT PLUGINS                                    #
+###############################################################################
+
+# Read Apache status information (mod_status)
+#[[inputs.apache]]
+#  ## An array of Apache status URI to gather stats.
+#  ## Default is "http://localhost/server-status?auto".
+#  urls = ["http://localhost/server-status?auto"]
+#  ## user credentials for basic HTTP authentication
+#  username = "myuser"
+#  password = "mypassword"
+#
+#  ## Timeout to the complete conection and reponse time in seconds
+#  response_timeout = "25s" ## default to 5 seconds
+#
+#  ## Optional SSL Config
+#  # ssl_ca = "/etc/telegraf/ca.pem"
+#  # ssl_cert = "/etc/telegraf/cert.pem"
+#  # ssl_key = "/etc/telegraf/key.pem"
+#  ## Use SSL but skip chain & host verification
+#  # insecure_skip_verify = false
+#
+
+# Collects performance metrics from the MON and OSD nodes in a Ceph storage cluster.
+{% if inventory_hostname in groups ['storage'] %}
+[[inputs.ceph]]
+  ## This is the recommended interval to poll.  Too frequent and you will lose
+  ## data points due to timeouts during rebalancing and recovery
+  interval = '1m'
+
+  ## All configuration values are optional, defaults are shown below
+
+  ## location of ceph binary
+  ceph_binary = "/usr/bin/ceph"
+
+  ## directory in which to look for socket files
+  socket_dir = "/var/run/ceph"
+
+  ## prefix of MON and OSD socket files, used to determine socket type
+  mon_prefix = "ceph-mon"
+  osd_prefix = "ceph-osd"
+
+  ## suffix used to identify socket files
+  socket_suffix = "asok"
+
+  ## Ceph user to authenticate as
+  ceph_user = "client.admin"
+
+  ## Ceph configuration to use to locate the cluster
+  ceph_config = "/etc/ceph/ceph.conf"
+
+  ## Whether to gather statistics via the admin socket
+  gather_admin_socket_stats = true
+
+  ## Whether to gather statistics via ceph commands
+  gather_cluster_stats = true
+{% endif %}
+# Read metrics about cpu usage
+
+[[inputs.cpu]]
+  ## Whether to report per-cpu stats or not
+  percpu = true
+  ## Whether to report total system cpu stats or not
+  totalcpu = true
+  ## If true, collect raw CPU time metrics.
+  collect_cpu_time = false
+
+
+# Read metrics about disk usage by mount point
+[[inputs.swap]]
+[[inputs.processes]]
+[[inputs.diskio]]
+[[inputs.disk]]
+  ## By default, telegraf gather stats for all mountpoints.
+  ## Setting mountpoints will restrict the stats to the specified mountpoints.
+  # mount_points = ["/"]
+
+  ## Ignore some mountpoints by filesystem type. For example (dev)tmpfs (usually
+  ## present on /run, /var/run, /dev/shm or /dev).
+  ignore_fs = ["tmpfs", "devtmpfs", "devfs"]
+
+
+# Read metrics of haproxy, via socket or csv stats page
+#[[inputs.haproxy]]
+#  ## An array of address to gather stats about. Specify an ip on hostname
+#  ## with optional port. ie localhost, 10.10.3.33:1936, etc.
+#  ## Make sure you specify the complete path to the stats endpoint
+#  ## including the protocol, ie http://10.10.3.33:1936/haproxy?stats
+#
+#  ## If no servers are specified, then default to 127.0.0.1:1936/haproxy?stats
+# # servers = ["http://myhaproxy.com:1936/haproxy?stats"]
+#
+#  ## You can also use local socket with standard wildcard globbing.
+#  ## Server address not starting with 'http' will be treated as a possible
+#  ## socket, so both examples below are valid.
+#  #servers = ["socket:/run/haproxy/admin.sock", "/run/haproxy/*.sock"]
+#  servers = ["unix:/var/lib/haproxy/stats"]
+#
+#  ## By default, some of the fields are renamed from what haproxy calls them.
+#  ## Setting this option to true results in the plugin keeping the original
+#  ## field names.
+#  #keep_field_names = true
+#
+#  ## Optional SSL Config
+#  # ssl_ca = "/etc/telegraf/ca.pem"
+#  # ssl_cert = "/etc/telegraf/cert.pem"
+#  # ssl_key = "/etc/telegraf/key.pem"
+#  ## Use SSL but skip chain & host verification
+#  # insecure_skip_verify = false
+
+
+# HTTP/HTTPS request given an address a method and a timeout
+#[[inputs.http_response]]
+  ## Server address (default http://localhost)
+  #example glance
+  ## Set response_timeout (default 5 seconds)
+#  response_timeout = "5s"
+  ## HTTP Request Method
+#  method = "GET"
+  ## Whether to follow redirects from the server (defaults to false)
+#  follow_redirects = true
+  ## HTTP Request Headers (all values must be strings)
+  # [inputs.http_response.headers]
+  #   Host = "github.com"
+  ## Optional HTTP Request Body
+  # body = '''
+  # {'fake':'data'}
+  # '''
+
+  ## Optional substring or regex match in body of the response
+  ## response_string_match = "\"service_status\": \"up\""
+  ## response_string_match = "ok"
+  ## response_string_match = "\".*_status\".?:.?\"up\""
+
+  ## Optional SSL Config
+  #ssl_ca = "/etc/ssl/certs/rootCA.crt"
+  # ssl_cert = "/etc/telegraf/cert.pem"
+  # ssl_key = "/etc/telegraf/key.pem"
+  ## Use SSL but skip chain & host verification
+#  insecure_skip_verify = false
+
+
+# Read metrics about memory usage
+[[inputs.mem]]
+  # no configuration
+
+
+# Read metrics from one or many mysql servers
+#[[inputs.mysql]]
+#  ## specify servers via a url matching:
+#  ##  [username[:password]@][protocol[(address)]]/[?tls=[true|false|skip-verify]]
+#  ##  see https://github.com/go-sql-driver/mysql#dsn-data-source-name
+#  ##  e.g.
+#  ##    servers = ["user:passwd@tcp(127.0.0.1:3306)/?tls=false"]
+#  ##    servers = ["user@tcp(127.0.0.1:3306)/?tls=false"]
+#  #
+#  ## If no servers are specified, then localhost is used as the host.
+#  servers = ["root@tcp(localhost:3306)/"]
+#  ## the limits for metrics form perf_events_statements
+#  perf_events_statements_digest_text_limit  = 120
+#  perf_events_statements_limit              = 250
+#  perf_events_statements_time_limit         = 86400
+#  #
+#  ## if the list is empty, then metrics are gathered from all databasee tables
+#  table_schema_databases                    = []
+#  #
+#  ## gather metrics from INFORMATION_SCHEMA.TABLES for databases provided above list
+#  gather_table_schema                       = false
+#  #
+#  ## gather thread state counts from INFORMATION_SCHEMA.PROCESSLIST
+#  gather_process_list                       = true
+#  #
+#  ## gather thread state counts from INFORMATION_SCHEMA.USER_STATISTICS
+#  gather_user_statistics                    = true
+#  #
+#  ## gather auto_increment columns and max values from information schema
+#  gather_info_schema_auto_inc               = true
+#  #
+#  ## gather metrics from INFORMATION_SCHEMA.INNODB_METRICS
+#  gather_innodb_metrics                     = true
+#  #
+#  ## gather metrics from SHOW SLAVE STATUS command output
+#  gather_slave_status                       = true
+#  #
+#  ## gather metrics from SHOW BINARY LOGS command output
+#  gather_binary_logs                        = false
+#  #
+#  ## gather metrics from PERFORMANCE_SCHEMA.TABLE_IO_WAITS_SUMMARY_BY_TABLE
+#  gather_table_io_waits                     = false
+#  #
+#  ## gather metrics from PERFORMANCE_SCHEMA.TABLE_LOCK_WAITS
+#  gather_table_lock_waits                   = false
+#  #
+#  ## gather metrics from PERFORMANCE_SCHEMA.TABLE_IO_WAITS_SUMMARY_BY_INDEX_USAGE
+#  gather_index_io_waits                     = false
+#  #
+#  ## gather metrics from PERFORMANCE_SCHEMA.EVENT_WAITS
+#  gather_event_waits                        = false
+#  #
+#  ## gather metrics from PERFORMANCE_SCHEMA.FILE_SUMMARY_BY_EVENT_NAME
+#  gather_file_events_stats                  = false
+#  #
+#  ## gather metrics from PERFORMANCE_SCHEMA.EVENTS_STATEMENTS_SUMMARY_BY_DIGEST
+#  gather_perf_events_statements             = false
+#  #
+#  ## Some queries we may want to run less often (such as SHOW GLOBAL VARIABLES)
+#  interval_slow                   = "30m"
+
+
+# Read metrics about network interface usage
+[[inputs.netstat]]
+[[inputs.net]]
+  ## By default, telegraf gathers stats from any up interface (excluding loopback)
+  ## Setting interfaces will tell it to gather these explicit interfaces,
+  ## regardless of status.
+  ##
+  # interfaces = ["eth0"]
+
+
+# Reads metrics from RabbitMQ servers via the Management Plugin
+#[[inputs.rabbitmq]]
+#  ## Management Plugin url. (default: http://localhost:15672)
+#  url = "http://localhost:25672"
+#  ## Tag added to rabbitmq_overview series; deprecated: use tags
+#  # name = "rmq-server-1"
+#  ## Credentials
+#  username = "openstack"
+#  password = "eed8ieP1"
+#
+#  ## Optional SSL Config
+#  # ssl_ca = "/etc/telegraf/ca.pem"
+#  # ssl_cert = "/etc/telegraf/cert.pem"
+#  # ssl_key = "/etc/telegraf/key.pem"
+#  ## Use SSL but skip chain & host verification
+#  # insecure_skip_verify = false
+#
+#  ## Optional request timeouts
+#  ##
+#  ## ResponseHeaderTimeout, if non-zero, specifies the amount of time to wait
+#  ## for a server's response headers after fully writing the request.
+#  # header_timeout = "3s"
+#  ##
+#  ## client_timeout specifies a time limit for requests made by this client.
+#  ## Includes connection time, any redirects, and reading the response body.
+#  # client_timeout = "4s"
+#
+#  ## A list of nodes to pull metrics about. If not specified, metrics for
+#  ## all nodes are gathered.
+#  # nodes = ["rabbit@node1", "rabbit@node2"]
+
+
+# Monitor sensors, requires lm-sensors package
+[[inputs.sensors]]
+  ## Remove numbers from field names.
+  ## If true, a field name like 'temp1_input' will be changed to 'temp_input'.
+  # remove_numbers = true
+
+
+# Read metrics about system load & uptime
+[[inputs.system]]
+  # no configuration
+[[inputs.ipmi_sensor]]
+  ## optionally specify the path to the ipmitool executable
+  # path = "/usr/bin/ipmitool"
+  #
+  ## optionally specify one or more servers via a url matching
+  ##  [username[:password]@][protocol[(address)]]
+  ##  e.g.
+  ##    root:passwd@lan(127.0.0.1)
+  ##
+  ## if no servers are specified, local machine sensor stats will be queried
+  ##
+  # servers = ["USERID:PASSW0RD@lan(192.168.1.1)"]
+
+  ## Recomended: use metric 'interval' that is a multiple of 'timeout' to avoid
+  ## gaps or overlap in pulled data
+  interval = "30s"
+
+  ## Timeout for the ipmitool command to complete. Default is 20 seconds.
+  #timeout = "20s"
+[[inputs.smart]]
+  ## optionally specify the path to the smartctl executable
+  # path = "/usr/bin/smartctl"
+  #
+  ## optionally specify devices to exclude from reporting.
+  # excludes = [ "/dev/pass6" ]
+  #
+  ## optionally specify devices, if unset a scan (smartctl --scan)
+  ## for S.M.A.R.T. devices will done and all found will be included.
+  # devices = [ "/dev/ada0" ]
+[[inputs.exec]]
+  commands = ["/etc/telegraf/exec.sh bind"]
+  name_override = "exec_binding"
+  data_format = "influx"
+
+[[inputs.exec]]
+  commands = ["/etc/telegraf/exec.sh services"]
+  name_override = "exec_services"
+  data_format = "influx"
+
+{% if inventory_hostname == "mgmt1" %}
+
+[[inputs.snmp]]
+  [[inputs.snmp]]
+    agents = [ "10.10.10.10:161" ]
+    version = 2
+    community = "webdcomm"
+    name = "snmp"
+
+  [[inputs.snmp.field]]
+    name = "hostname"
+    oid = ".1.3.6.1.2.1.1.5.0"
+    is_tag = true
+
+  [[inputs.snmp.table]]
+    name = "qfx1"
+    inherit_tags = [ "hostname" ]
+  [[inputs.snmp.table.field]]
+    name = "temp_cpu"
+    oid = ".1.3.6.1.4.1.2636.3.1.13.1.8.9.1"
+  [[inputs.snmp.table.field]]
+    name = "util_cpu"
+    oid = ".1.3.6.1.4.1.2636.3.1.13.1.8.9.1"
+  [[inputs.snmp.table.field]]
+    name = "util_mem"
+    oid = ".1.3.6.1.4.1.2636.3.1.13.1.11.9.1"
+  [[inputs.snmp.table.field]]
+    name = "la"
+    oid = ".1.3.6.1.4.1.2636.3.1.13.1.22.9.1"
+  [[inputs.snmp.table.field]]
+    name = "uptime"
+    oid = ".1.3.6.1.4.1.2636.3.1.13.1.13.9.1"
+
+  [[inputs.snmp.table]]
+    name = "qfx2"
+    inherit_tags = [ "hostname" ]
+  [[inputs.snmp.table.field]]
+    name = "temp_cpu"
+    oid = ".1.3.6.1.4.1.2636.3.1.13.1.8.9.2"
+  [[inputs.snmp.table.field]]
+    name = "util_cpu"
+    oid = ".1.3.6.1.4.1.2636.3.1.13.1.8.9.2"
+  [[inputs.snmp.table.field]]
+    name = "util_mem"
+    oid = ".1.3.6.1.4.1.2636.3.1.13.1.11.9.2"
+  [[inputs.snmp.table.field]]
+    name = "la"
+    oid = ".1.3.6.1.4.1.2636.3.1.13.1.22.9.2"
+  [[inputs.snmp.table.field]]
+    name = "uptime"
+    oid = ".1.3.6.1.4.1.2636.3.1.13.1.13.9.2"
+
+{% endif %}

@@ -1,0 +1,127 @@
+[services]
+{% if inventory_hostname in groups ['mgmt'] %}
+atd
+auditd
+ceph-mds.target
+ceph-mon.target
+ceph-osd.target
+ceph-radosgw.target
+ceph.target
+chronyd
+corosync
+crond
+filebeat
+haproxy
+httpd
+irqbalance
+lm_sensors
+mdmonitor
+memcached
+mysql
+neutron-dhcp-agent
+neutron-l3-agent
+neutron-lbaasv2-agent
+neutron-metadata-agent
+neutron-openvswitch-agent
+neutron-server
+openstack-aodh-api
+openstack-aodh-evaluator
+openstack-aodh-listener
+openstack-aodh-notifier
+openstack-ceilometer-central
+openstack-ceilometer-collector
+openstack-ceilometer-notification
+openstack-ceilometer-polling
+openstack-cinder-api
+openstack-cinder-backup
+openstack-cinder-scheduler
+openstack-cinder-volume
+openstack-glance-api
+openstack-glance-registry
+openstack-gnocchi-metricd
+openstack-heat-api
+openstack-heat-engine
+openstack-manila-api
+openstack-manila-scheduler
+openstack-manila-share
+openstack-nova-api
+openstack-nova-conductor
+openstack-nova-consoleauth
+openstack-nova-metadata-api
+openstack-nova-novncproxy
+openstack-nova-scheduler
+openvswitch
+pacemaker
+pcsd
+rabbitmq-server
+rsyncd
+rsyslog
+sshd
+{% endif %}
+{% if inventory_hostname in groups ['storage'] %}
+auditd
+chronyd
+crond
+ipmievd
+irqbalance
+lm_sensors
+mdmonitor
+postfix
+rsyslog
+smartd
+sshd
+tuned
+ceph-mds.target
+ceph-mon.target
+ceph-osd.target
+ceph.target
+remote-fs.target
+{% endif %}
+{% if inventory_hostname in groups ['cpu'] %}
+atd
+auditd
+chronyd
+crond
+irqbalance
+libvirtd
+lvm2-monitor
+mdmonitor
+netcf-transaction
+neutron-dhcp-agent
+neutron-l3-agent
+neutron-metadata-agent
+neutron-openvswitch-agent
+openstack-ceilometer-compute
+openstack-nova-compute
+openvswitch
+rsyslog
+smartd
+sshd
+tuned
+ceph-mds.target
+ceph-mon.target
+ceph-osd.target
+ceph.target
+{% endif %}
+
+{% if inventory_hostname in groups ['mgmt'] %}
+[bind]
+mysql {{ cluster_ip }}:3306
+horizon {{ cluster_ip }}:443
+keystone-admin {{ cluster_ip }}:35357
+keyston_public {{ cluster_ip }}:5000
+glance-api {{ cluster_ip }}:9292
+glance-registry {{ cluster_ip }}:9191
+nova-api {{ cluster_ip }}:8774
+nova-metadata {{ cluster_ip }}:8775
+nova-placement {{ cluster_ip }}:8778
+nova-novncproxy {{ cluster_ip }}:6080
+neutron-server {{ cluster_ip }}:9696
+neutron-metadata {{ cluster_ip }}:8775
+cinder-api {{ cluster_ip }}:8776
+swift {{ cluster_ip }}:8080
+aodh {{ cluster_ip }}:8042
+gnocchi {{ cluster_ip }}:8041
+heat-api {{ cluster_ip }}:8004
+manila-api {{ cluster_ip }}:8786
+{% endif %}

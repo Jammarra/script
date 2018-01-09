@@ -1,0 +1,2 @@
+modprobe ipmi_devintf
+modprobe ipmi_si
