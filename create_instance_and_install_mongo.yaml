@@ -1,0 +1,53 @@
+- name: Deploy on OpenStack
+  hosts: localhost
+  gather_facts: false
+  tasks:
+  - name: Deploy an instance mongoA
+    os_server:
+      state: present
+      name: mongoA
+      image: Ubuntu 16.04.2 LTS 64bit
+      key_name: jam
+      wait: yes
+      flavor: Node. 1.1
+      auto_floating_ip: no 
+      network: private
+      meta:
+        hostname: webserver.localdomain
+    register: mongoA
+
+
+  - name: Wait for SSH on the Instance
+    command: >
+      ssh -oBatchMode=yes -oStrictHostKeyChecking=no
+      ubuntu@{{mongoA.server.private_v4}} true
+    register: result
+    until: result|success
+    retries: 30
+    delay: 10
+
+  - name: Add Instance mongo to Inventory
+    add_host: name=mongoa groups=mongo2
+              ansible_ssh_host={{ mongoA.server.private_v4 }}
+
+- hosts: mongo2
+  remote_user: ubuntu
+  gather_facts: False
+  sudo: yes
+  tasks:
+   - name: install python 2
+     sudo: yes
+     raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)
+   - name: Add mongo ppa key
+     apt_key: >
+       keyserver=hkp://keyserver.ubuntu.com:80
+       id=EA312927
+       state=present
+   - name: Add mongo sources list
+     lineinfile: >
+       line="deb http://repo.mongodb.org/apt/ubuntu trusty/mongodb-org/3.2 multiverse"
+       dest=/etc/apt/sources.list.d/mongodb.list
+       state=present
+       create=yes
+   - name: Install mongo
+     shell: apt update && apt install -y mongodb-org --allow-unauthenticated
