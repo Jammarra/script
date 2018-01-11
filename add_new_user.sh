@@ -4,7 +4,9 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin
 
 source /root/admin-openrc
 
-id_project=$1
+name_project=$1
+
+id_project=`openstack project list | grep vdc_urimukhin_test | awk -F '|' '{print $2}' | sed 's/^ //; s/ $//; /^$/d'`
 
 #add group
 openstack role add --group s_g_admin --project $id_project admin
@@ -18,11 +20,12 @@ openstack router set $id_router --external-gateway cc75cb3f-0922-4f23-b077-099d9
 
 #create network
 openstack network create --project $id_project --no-share network_private
-openstack subnet create --project $id_project --dhcp --subnet-range 192.168.1.0/24 --dns-nameserver 8.8.8.8 --network network_private subnet_private
+id_network=`openstack network list --project $id_project --name network_private | grep -v '+\|ID'| awk -F '|' '{print $2}' | sed 's/^ //; s/ $//; /^$/d'`
+openstack subnet create --project $id_project --dhcp --subnet-range 192.168.1.0/24 --dns-nameserver 8.8.8.8 --network $id_network subnet_private
 
 #add network to a router
-id_network=`openstack subnet list --project $id_project --name subnet_private | grep -v '+\|ID'| awk -F '|' '{print $2}' | sed 's/^ //; s/ $//; /^$/d'`
-openstack router add subnet $id_router $id_network
+id_subnet=`openstack subnet list --project $id_project --name subnet_private | grep -v '+\|ID'| awk -F '|' '{print $2}' | sed 's/^ //; s/ $//; /^$/d'`
+openstack router add subnet $id_router $id_subnet
 
 #edit security_group
 id_security=` openstack security group list --project $id_project | grep default | grep -v '+\|ID'| awk -F '|' '{print $2}' | sed 's/^ //; s/ $//; /^$/d'`
