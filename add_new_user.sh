@@ -23,3 +23,14 @@ openstack subnet create --project $id_project --dhcp --subnet-range 192.168.1.0/
 #add network to a router
 id_network=`openstack subnet list --project $id_project --name subnet_private | grep -v '+\|ID'| awk -F '|' '{print $2}' | sed 's/^ //; s/ $//; /^$/d'`
 openstack router add subnet $id_router $id_network
+
+#edit security_group
+id_security=` openstack security group list --project $id_project | grep default | grep -v '+\|ID'| awk -F '|' '{print $2}' | sed 's/^ //; s/ $//; /^$/d'`
+openstack security group rule create --protocol icmp --ingress --project $id_project $id_security
+openstack security group rule create --protocol icmp --egress --project $id_project $id_security
+openstack security group rule create --protocol TCP --ingress --project $id_project $id_security --dst-port 22
+openstack security group rule create --protocol TCP --ingress --project $id_project $id_security --dst-port 443
+openstack security group rule create --protocol TCP --ingress --project $id_project $id_security --dst-port 80
+openstack security group rule create --protocol TCP --ingress --project $id_project $id_security --dst-port 53
+openstack security group rule create --protocol UDP --ingress --project $id_project $id_security --dst-port 53
+openstack security group rule create --protocol TCP --ingress --project $id_project $id_security --dst-port 3389
